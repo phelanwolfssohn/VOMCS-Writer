@@ -140,12 +140,12 @@ if __name__ == "__main__":
     # 1. Phase 1 ausführen (Die DNA-Basis)
     compiler.execute_phase_1_dna()
     
-    # 2. Prüfen, ob die Roman-Textdatei existiert
-    dateiname = "mein_roman_kapitel.txt"
+    # 2. Prüfen, ob die Textdatei existiert
+    dateiname = "beispiel.txt"
     if not os.path.exists(dateiname):
         print(f"[System] Erzeuge massive Dummy-Textbasis in '{dateiname}'...")
         with open(dateiname, "w", encoding="utf-8") as f:
-            # Wir simulieren ein gigantisches Kapitel deines Buches
+            # Wir simulieren ein gigantisches Kapitel eines Buches
             kapitel_text = "Kapitel 1: Der VOMCS-Würfel erwacht. Die Kristalle glühten im nahen Infrarotbereich. " * 3000
             f.write(kapitel_text)
 
