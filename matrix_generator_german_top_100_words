@@ -1,0 +1,138 @@
+import numpy as np
+from PIL import Image
+import os
+
+class VomcsFullMatrixWriter:
+    def __init__(self, size=300):
+        self.size = size
+        # Erzeuge leere 3D-Matrix (0 = Klares Harz)
+        self.matrix = np.zeros((size, size, size), dtype=int)
+        
+        # Hardware-Zentral-Marker (Permanent 1 bei 150,150,150)
+        self.mitte = size // 2
+        self.matrix[self.mitte, self.mitte, self.mitte] = 1
+
+    def text_to_bits(self, text):
+        """Konvertiert einen String in eine Liste aus echten Bits (0 und 1)."""
+        bits = []
+        for char in text:
+            bin_char = format(ord(char), '08b')
+            bits.extend([int(b) for b in bin_char])
+        return bits
+
+    def inject_pattern_spiral(self, layer_z, bits):
+        """MUSTER 0x01: Webt Bits spiralförmig von oben links nach innen."""
+        x, y = 0, 0
+        direction = "down"
+        for bit in bits:
+            if 0 <= x < self.size and 0 <= y < self.size:
+                self.matrix[x, y, layer_z] = bit
+                if direction == "down":
+                    if x < self.size - 1: x += 1
+                    else: direction = "right"; y += 1
+                elif direction == "right":
+                    if y < self.size - 1: y += 1
+                    else: break
+
+    def inject_pattern_zigzag(self, layer_z, bits):
+        """MUSTER 0x03: Webt Bits im klassischen Zickzack-Raster (Boustrophedon)."""
+        x, y = 0, 0
+        direction = 1 # 1 = Rechts, -1 = Links
+        for bit in bits:
+            if 0 <= x < self.size and 0 <= y < self.size:
+                self.matrix[x, y, layer_z] = bit
+                # Bewege entlang der Reihe
+                if (direction == 1 and y < self.size - 1) or (direction == -1 and y > 0):
+                    y += direction
+                else:
+                    # Am Ende der Reihe: Eine Zeile tiefer und Richtung umkehren
+                    if x < self.size - 1:
+                        x += 1
+                        direction *= -1
+                    else:
+                        break
+
+    def generate_full_german_matrix(self):
+        print(f"[VOMCS Engine] Starte 3-Schichten-Generierung für deutsche Sprach-DNA...")
+
+        # ----------------------------------------------------
+        # SCHICHT 3 (DER KERN: ZENTRUM): Grammatikalische Brücken & Marker
+        # ----------------------------------------------------
+        # Wir platzieren die Brücken-Strukturen exakt um das Zentrum herum (Schicht 140 bis 160)
+        # Scan-Geometrie: MUSTER 0x03 (Zickzack)
+        print("\n[Schicht 3 - Kern] Webe grammatikalische Brücken (Muster: Zickzack)...")
+        grammatik_bruecken = ["DASS", "WEIL", "WENN", "DANN", "OBWOHL", "ABER", "ODER", "SONDERN"]
+        for idx, wort in enumerate(grammatik_bruecken):
+            bits = self.text_to_bits(wort)
+            # Verteile symmetrisch um das Zentrum (150) herum, lasse die 150 selbst für den Marker frei
+            ziel_z = 140 + idx if idx < 4 else 151 + (idx - 4)
+            self.inject_pattern_zigzag(ziel_z, bits)
+
+        # ----------------------------------------------------
+        # SCHICHT 2 (DIE MITTE): Die 100 häufigsten deutschen Wörter & Silben
+        # ----------------------------------------------------
+        # Platziert in den Schichten 80 bis 139 sowie 161 bis 220
+        # Scan-Geometrie: Mix aus Spirale und Zickzack
+        print("\n[Schicht 2 - Mitte] Webe die Top-100 Wörter der deutschen Sprache...")
+        top_100_words = [
+            "und", "der", "die", "das", "den", "von", "zu", "mit", "in", "auf", "für", "ist", "sich", "nicht", "ein", "eine", "einen", "einem", "einer", "eines",
+            "denn", "aber", "oder", "doch", "noch", "schon", "auch", "nur", "mehr", "wird", "werden", "wurde", "wurden", "kann", "können", "muss", "müssen",
+            "ich", "du", "er", "sie", "es", "wir", "ihr", "mein", "dein", "sein", "unser", "euer", "aus", "bei", "nach", "vor", "hinter", "über",
+            "unter", "neben", "zwischen", "durch", "um", "am", "im", "vom", "zum", "zur", "wie", "als", "so", "dann", "da", "dort", "hier", "wo",
+            "man", "alle", "alles", "viele", "etwas", "nichts", "jahr", "jahre", "zeit", "welt", "mensch", "menschen", "leben", "sehen", "gehen", "kommen"
+        ]
+        
+        for idx, wort in enumerate(top_100_words):
+            bits = self.text_to_bits(wort.upper())
+            # Wir verteilen die Wörter auf die oberen und unteren Mittelschichten
+            if idx < 50:
+                ziel_z = 80 + idx
+                self.inject_pattern_spiral(ziel_z, bits)
+            else:
+                ziel_z = 161 + (idx - 50)
+                self.inject_pattern_zigzag(ziel_z, bits)
+
+        # ----------------------------------------------------
+        # SCHICHT 1 (DIE ÄUSSEREN RÄNDER): Alphabet-Basis & Sonderzeichen
+        # ----------------------------------------------------
+        # Platziert ganz außen (Schicht 0 bis 79 sowie 221 bis 299)
+        # Scan-Geometrie: MUSTER 0x01 (Spirale)
+        print("\n[Schicht 1 - Ränder] Webe Alphabet-Basis & Sonderzeichen (Muster: Spirale)...")
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜß.,!?-+0123456789"
+        
+        # Wir fluten die Ränder großflächig mit dem Alphabet, damit jede Kombination existiert
+        for ziel_z in range(0, 80):
+            # Nutze das Alphabet und verschiebe es pro Schicht leicht, um Vielfalt zu erzeugen
+            rotierte_basis = alphabet[ziel_z % len(alphabet):] + alphabet[:ziel_z % len(alphabet)]
+            bits = self.text_to_bits(rotierte_basis)
+            self.inject_pattern_spiral(ziel_z, bits)
+            
+        for ziel_z in range(221, 300):
+            rotierte_basis = alphabet[ziel_z % len(alphabet):] + alphabet[:ziel_z % len(alphabet)]
+            bits = self.text_to_bits(rotierte_basis)
+            self.inject_pattern_spiral(ziel_z, bits)
+
+        print("\n[VOMCS Engine] Die 3-Schichten-Matrix wurde erfolgreich im Speicher gewoben.")
+        return self.matrix
+
+    def export_to_sla_slices(self, output_folder="vomics_slices"):
+        """Übersetzt die Matrix in echte Schichtbilder. 0=Weiß, 1=Schwarz (Loch)."""
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+            
+        print(f"\n[Slicer] Exportiere {self.size} hochauflösende PNGs in '{output_folder}'...")
+        
+        for z in range(self.size):
+            img_array = np.full((self.size, self.size), 255, dtype=np.uint8)
+            img_array[self.matrix[:, :, z] == 1] = 0
+            
+            img = Image.fromarray(img_array, mode='L')
+            filename = os.path.join(output_folder, f"layer_{z:03d}.png")
+            img.save(filename)
+            
+        print(f"\n🎉 EXPORT FÜR ELEGOO MARS BEENDET! Alles sicher gelagert.")
+
+if __name__ == "__main__":
+    writer = VomcsFullMatrixWriter(size=300)
+    writer.generate_full_german_matrix()
+    writer.export_to_sla_slices()
